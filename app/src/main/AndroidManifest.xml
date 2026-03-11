@@ -49,11 +49,3 @@
 
     </application>
 </manifest>
-```
-
----
-
-**File 2:**
-Path:
-```
-app/src/main/res/xml/accessibility_service_config.xml
