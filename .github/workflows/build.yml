@@ -18,25 +18,28 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: 'gradle'
 
-    - name: Setup Android SDK
-      run: |
-        echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+    - name: Accept Android SDK licenses
+      run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+    - name: Install Android SDK
+      run: $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: '8.1.1'
 
-    - name: Build Debug APK
-      run: gradle assembleDebug --stacktrace
+    - name: Make gradlew executable
+      run: chmod +x gradlew
 
-    - name: Find APK
-      run: find . -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+    - name: Build Debug APK
+      run: gradle :app:assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: TvRemoteAgent-debug
-        path: "**/*.apk"
-        if-no-files-found: warn
+        path: app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
