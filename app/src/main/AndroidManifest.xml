@@ -3,14 +3,15 @@
     package="com.example.tvremote">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"/>
 
     <application
         android:allowBackup="true"
         android:label="TV Remote Agent"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"
@@ -23,8 +24,7 @@
 
         <service
             android:name=".TvRemoteService"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice"/>
+            android:exported="false"/>
 
         <service
             android:name=".TvAccessibilityService"
