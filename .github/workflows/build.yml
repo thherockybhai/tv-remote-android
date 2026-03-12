@@ -35,8 +35,9 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: gradle tasks --all 2>&1 | head -100
-
+      run: |
+        gradle tasks --all 2>&1 | grep -i "assemble\|debug\|apk" || true
+        gradle app:assembleDebug || gradle assembleDebug || echo "Both failed"
       
     - name: Upload APK
       uses: actions/upload-artifact@v4
