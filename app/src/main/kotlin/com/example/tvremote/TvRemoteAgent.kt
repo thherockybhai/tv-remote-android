@@ -36,25 +36,27 @@ fun startTvService(context: Context) {
 
 class TvRemoteService : Service() {
 
-    private val client = OkHttpClient.Builder()
-        .pingInterval(20, TimeUnit.SECONDS)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build()
-
     private var webSocket: WebSocket? = null
     private val handler = Handler(Looper.getMainLooper())
     private var reconnectRunnable: Runnable? = null
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .pingInterval(20, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+    }
 
     override fun onCreate() {
         super.onCreate()
+        // CRITICAL: Create channel and call startForeground immediately in onCreate
         createNotificationChannel()
         startForeground(NOTIF_ID, buildNotification("Starting..."))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i(TAG, "Service started, connecting...")
-        connect()
+        // startForeground already called in onCreate - just connect now
+        handler.post { connect() }
         return START_STICKY
     }
 
@@ -63,12 +65,12 @@ class TvRemoteService : Service() {
     override fun onDestroy() {
         reconnectRunnable?.let { handler.removeCallbacks(it) }
         webSocket?.cancel()
-        client.dispatcher.executorService.shutdown()
         super.onDestroy()
     }
 
     private fun connect() {
         Log.i(TAG, "Connecting to $SERVER_URL")
+        updateNotification("Connecting...")
         val request = Request.Builder().url(SERVER_URL).build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
 
@@ -94,13 +96,13 @@ class TvRemoteService : Service() {
 
             override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
                 Log.e(TAG, "WebSocket failure: ${t.message}")
-                updateNotification("Disconnected - retrying...")
+                updateNotification("Reconnecting...")
                 scheduleReconnect()
             }
 
             override fun onClosed(ws: WebSocket, code: Int, reason: String) {
                 Log.w(TAG, "WebSocket closed: $code")
-                updateNotification("Disconnected - retrying...")
+                updateNotification("Reconnecting...")
                 scheduleReconnect()
             }
         })
@@ -127,8 +129,13 @@ class TvRemoteService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(NOTIF_CHANNEL, "TV Remote", NotificationManager.IMPORTANCE_LOW)
-            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
+            val ch = NotificationChannel(
+                NOTIF_CHANNEL,
+                "TV Remote",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+                .createNotificationChannel(ch)
         }
     }
 }
@@ -149,7 +156,7 @@ fun executeCommand(command: String, value: Int?) {
         "volume_down"  -> acc.injectKey(KeyEvent.KEYCODE_VOLUME_DOWN)
         "mute"         -> acc.injectKey(KeyEvent.KEYCODE_VOLUME_MUTE)
         "power"        -> acc.injectKey(KeyEvent.KEYCODE_POWER)
-        else           -> Log.w(TAG, "Unknown command: $command")
+        else           -> Log.w(TAG, "Unknown: $command")
     }
 }
 
@@ -178,7 +185,11 @@ class TvAccessibilityService : AccessibilityService() {
             val im = Class.forName("android.hardware.input.InputManager")
                 .getMethod("getInstance").invoke(null)
             val now = SystemClock.uptimeMillis()
-            val inject = im.javaClass.getMethod("injectInputEvent", android.view.InputEvent::class.java, Int::class.javaPrimitiveType)
+            val inject = im.javaClass.getMethod(
+                "injectInputEvent",
+                android.view.InputEvent::class.java,
+                Int::class.javaPrimitiveType
+            )
             inject.invoke(im, KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0), 0)
             Thread.sleep(50)
             inject.invoke(im, KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0), 0)
