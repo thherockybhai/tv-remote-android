@@ -34,6 +34,9 @@ jobs:
       with:
         gradle-version: '8.1.1'
 
+    - name: Show build.gradle
+      run: cat build.gradle
+
     - name: Build Debug APK
       run: gradle assembleDebug
 
