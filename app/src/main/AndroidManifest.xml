@@ -6,12 +6,12 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:allowBackup="true"
         android:label="TV Remote Agent"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="false">
+        android:theme="@style/AppTheme">
 
         <activity
             android:name=".MainActivity"
